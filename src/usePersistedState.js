@@ -1,4 +1,6 @@
-import { useState, useEffect, useRef } from 'react';
+import {
+  useState, useEffect, useRef, useCallback,
+} from 'react';
 import useEventListener from '@use-it/event-listener';
 
 import createGlobalState from './createGlobalState';
@@ -27,19 +29,19 @@ const usePersistedState = (initialState, key, { get, set }) => {
     };
   }, []);
 
-  // Only persist to storage if state changes.
-  useEffect(
-    () => {
+  const persistentSetState = useCallback((newState) => {
+    setState((currentState) => {
+      const newStateValue = typeof newState === 'function' ? newState(currentState) : newState;
       // persist to localStorage
-      set(key, state);
-
+      set(key, newStateValue);
       // inform all of the other instances in this tab
-      globalState.current.emit(state);
-    },
-    [state]
-  );
+      globalState.current.emit(newStateValue);
 
-  return [state, setState];
+      return newStateValue;
+    });
+  }, [set, key]);
+
+  return [state, persistentSetState];
 };
 
 export default usePersistedState;
